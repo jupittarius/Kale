@@ -167,6 +167,21 @@ static int getNextToken(){
     return CurTok = gettok();
 }
 
+/// BinopPrecedence - This holds the precedence for each binary operator that is
+/// defined.
+static std::map<char, int> BinopPrecedence;
+
+/// GetTokPrecedence - Get the precedence of the pending binary operator token.
+static int GetTokPrecedence(){
+    if (!isascii(CurTok))
+        return -1;
+
+    // Make sure it's a declared binop.
+    int TokPrec = BinopPrecedence[CurTok];
+    if (TokPrec <= 0) return -1;
+    return TokPrec;
+}
+
 /// LogError* - These are little helper functions for error handling.
 std::unique_ptr<ExprAST> LogError(const char *Str){
     fprintf(stderr, "LogError: %s\n", Str);
@@ -250,6 +265,41 @@ static std::unique_ptr<ExprAST> ParsePrimary(){
         case '(':
             return ParseParenExpr();
     }
+}
+
+/// binoprhs
+///     ::= ('+' primary)*
+static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
+                                                std::unique_ptr<ExprAST> LHS){
+    // If this is a binop, find its precedence.
+    while(1){
+        int TokPrec = GetTokPrecedence();
+
+        // If this is a binop that binds at least as tightly as the current binop,
+        // consume it, otherwise we are done.
+        if (TokPrec < ExprPrec)
+            return LHS;
+
+        // Okay, we know this is a binop.
+        int BinOp = CurTok;
+        getNextToken(); // eat binop
+
+        // Parse the primary expression after the binary operator.
+        auto RHS = ParsePrimary();
+        if (!RHS)
+            return nullptr;
+
+        // If BinOp binds less tightly with RHS than the operator after RHS, let
+        // the pending operator take RHS as its LHS. 
+        int NextPrec = GetTokPrecedence();
+        if (TokPrec < NextPrec){
+            RHS = ParseBinOpRHS(TokPrec+1, std::move(RHS));
+            if (!RHS)
+                return nullptr;
+        }
+        // Merge LHS/RHS
+        LHS = std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
+    } // loop around to the top of the while loop.
 }
 
 int main(){
