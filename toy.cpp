@@ -193,6 +193,8 @@ std::unique_ptr<PrototypeAST> LogErrorP(const char *Str){
     return nullptr;
 }
 
+static std::unique_ptr<ExprAST> ParseExpression();
+
 /// numberexpr ::= number
 static std::unique_ptr<ExprAST> ParseNumberExpr(){
     auto Result = std::make_unique<NumberExprAst>(NumberVal);
@@ -266,6 +268,8 @@ static std::unique_ptr<ExprAST> ParsePrimary(){
             return ParseParenExpr();
     }
 }
+
+static std::unique_ptr<ExprAST> ParseBinOpRHS(int, std::unique_ptr<ExprAST>);
 
 /// expression
 ///     ::= primary binoprhs
