@@ -1,4 +1,4 @@
-LLVMCFG = $(shell ~/llvm-project/build/bin/llvm-config --cxxflags --ldflags --system-libs --libs core)
+LLVMCFG = $(shell ~/llvm-project/build/bin/llvm-config --cxxflags --ldflags --system-libs --libs core orcjit native)
 
 .PHONY: all
 all:
